@@ -4,13 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="40da7297-be68-47cb-84f8-74df44209d9f" name="Changes" comment="Directory Monitoring&#10;Image Calibration&#10;BHTOM Integration">
+    <list default="true" id="40da7297-be68-47cb-84f8-74df44209d9f" name="Changes" comment="Directory Monitoring&#10;Image Calibration BETA&#10;BHTOM API Integration with uploading existing file and creation targets that doesn't exist">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/auth.py" beforeDir="false" afterPath="$PROJECT_DIR$/auth.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/calibration.py" beforeDir="false" afterPath="$PROJECT_DIR$/calibration.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.ini" beforeDir="false" afterPath="$PROJECT_DIR$/config.ini" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/light_curve.py" beforeDir="false" afterPath="$PROJECT_DIR$/light_curve.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/uploader.py" beforeDir="false" afterPath="$PROJECT_DIR$/uploader.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -123,7 +119,15 @@
       <option name="project" value="LOCAL" />
       <updated>1720136164837</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Directory Monitoring&#10;Image Calibration BETA&#10;BHTOM API Integration with uploading existing file and creation targets that doesn't exist">
+      <option name="closed" value="true" />
+      <created>1724008525297</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1724008525297</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -139,6 +143,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Directory Monitoring&#10;Image Calibration&#10;BHTOM Integration" />
-    <option name="LAST_COMMIT_MESSAGE" value="Directory Monitoring&#10;Image Calibration&#10;BHTOM Integration" />
+    <MESSAGE value="Directory Monitoring&#10;Image Calibration BETA&#10;BHTOM API Integration with uploading existing file and creation targets that doesn't exist" />
+    <option name="LAST_COMMIT_MESSAGE" value="Directory Monitoring&#10;Image Calibration BETA&#10;BHTOM API Integration with uploading existing file and creation targets that doesn't exist" />
   </component>
 </project>

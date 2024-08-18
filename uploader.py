@@ -1,6 +1,7 @@
 import os
 import requests
-from tkinter import messagebox, simpledialog
+import tkinter as tk
+from tkinter import messagebox, simpledialog, Text, Scrollbar
 
 
 def create_target(name, ra, dec, epoch, classification, discovery_date, importance, cadence, token):
@@ -33,9 +34,49 @@ def create_target(name, ra, dec, epoch, classification, discovery_date, importan
         return False
 
 
+def download_photometry_request(auth_token, name):
+    request_body = {
+        "name": name,
+    }
+
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Token {auth_token}',
+        'Content-Type': 'application/json',
+        'X-CSRFToken': 'uUz2fRnXhPuvD9YuuiDW9cD1LsajeaQnE4hwtEAfR00SgV9bD5HCe5i8n4m4KcOr'
+    }
+    api_url = "https://bh-tom2.astrolabs.pl/targets/download-photometry/"
+
+    response = requests.post(api_url, json=request_body, headers=headers)
+
+    if response.status_code == 200:
+        if response.text:
+            display_photometry_data(response.text)
+        else:
+            print("Empty Response")
+            messagebox.showinfo("Photometry Data", "The photometry response is empty.")
+    else:
+        print(f"Request for {name} failed with status code {response.status_code}")
+        messagebox.showerror("Photometry Request Failed",
+                             f"Request for {name} failed with status code {response.status_code}")
+
+
+def display_photometry_data(photometry_data):
+    photometry_window = tk.Toplevel()
+    photometry_window.title("Photometry Data")
+
+    text_widget = Text(photometry_window, wrap='word')
+    text_widget.insert('1.0', photometry_data)
+    text_widget.pack(expand=True, fill='both')
+
+    scrollbar = Scrollbar(photometry_window, command=text_widget.yview)
+    text_widget.config(yscrollcommand=scrollbar.set)
+    scrollbar.pack(side='right', fill='y')
+
+
 def upload_calibrated_files(calibrated_image_paths, token, target_name, app):
-    observatory_name = 'AZT-8_C4-16000'  # Updated observatory name
-    filter_name = 'GaiaSP/any'  # Stable filter name
+    observatory_name = 'AZT-8_C4-16000'
+    filter_name = 'GaiaSP/any'
 
     for calibrated_image_path in calibrated_image_paths:
         with open(calibrated_image_path, 'rb') as f:
@@ -60,12 +101,10 @@ def upload_calibrated_files(calibrated_image_paths, token, target_name, app):
             result = response.json()
             print("Upload Response:", result)
 
-            # Check if the target does not exist
             if 'target' in result and any("does not exist in the bhtom" in msg for msg in result['target']):
                 messagebox.showwarning("Target Not Found",
                                        f"Target '{target_name}' does not exist. Please enter the necessary details to create it.")
 
-                # Prompt the user for target details
                 ra = simpledialog.askstring("Input", "Enter Right Ascension (RA) for the target:", parent=app)
                 dec = simpledialog.askstring("Input", "Enter Declination (Dec) for the target:", parent=app)
 
@@ -85,7 +124,6 @@ def upload_calibrated_files(calibrated_image_paths, token, target_name, app):
                 importance = simpledialog.askstring("Input", "Enter Importance (default 9.97):", parent=app)
                 cadence = simpledialog.askstring("Input", "Enter Cadence (default 1.0):", parent=app)
 
-                # Create the target
                 if create_target(
                         name=target_name,
                         ra=ra,
@@ -97,7 +135,6 @@ def upload_calibrated_files(calibrated_image_paths, token, target_name, app):
                         cadence=float(cadence) if cadence else None,
                         token=token,
                 ):
-                    # Retry uploading the file after target creation
                     with open(calibrated_image_path, 'rb') as retry_f:
                         retry_response = requests.post(
                             url='https://uploadsvc2.astrolabs.pl/upload/',
@@ -113,6 +150,7 @@ def upload_calibrated_files(calibrated_image_paths, token, target_name, app):
                         if 'target' not in retry_result:
                             messagebox.showinfo("Upload Successful",
                                                 f"Calibrated file successfully uploaded to BHTOM under target '{target_name}'.")
+                            download_photometry_request(token, target_name)
                         else:
                             messagebox.showerror("Upload Failed",
                                                  f"Failed to upload calibrated file after target creation.\nDetails: {retry_result}")
@@ -122,3 +160,4 @@ def upload_calibrated_files(calibrated_image_paths, token, target_name, app):
                 return
 
     messagebox.showinfo("Upload Completed", "All calibrated files have been uploaded to BHTOM.")
+    download_photometry_request(token, target_name)
