@@ -1,9 +1,119 @@
 import os
 import requests
 import tkinter as tk
-from tkinter import messagebox, simpledialog, Text, Scrollbar
+from tkinter import messagebox, simpledialog
+import json
+import plotly.graph_objs as go
+from plotly.subplots import make_subplots
+from datetime import datetime
+from astropy.time import Time
+import random
+import plotly.io as pio
 
 
+# Converts MJD to standard date format (DD-MM-YYYY)
+def mjd_to_date(mjd):
+    t = Time(mjd, format='mjd')
+    return t.datetime.strftime('%d-%m-%Y')
+
+
+# Parse the photometry data and plot it
+def plot_photometry_data(data):
+    if not data:
+        messagebox.showinfo("No Data", "No photometry data available to plot.")
+        return
+
+    lines = data.splitlines()
+    headers = lines[0].split(';')
+
+    if len(headers) < 6:
+        messagebox.showerror("Error", "Unexpected photometry data format.")
+        return
+
+    # Initialize lists
+    mjd = []
+    magnitude = []
+    error = []
+    observer = []
+    date = []
+
+    # Parse data
+    for line in lines[1:]:
+        fields = line.split(';')
+        if len(fields) >= 6:
+            mjd_value = float(fields[0])
+            date.append(mjd_to_date(mjd_value))
+            mjd.append(mjd_value)
+            magnitude.append(float(fields[1]))
+            error.append(float(fields[2]))
+            observer.append(fields[5])
+
+    # Assign random colors to each observer
+    unique_observers = list(set(observer))
+    observer_colors = {obs: f'#{random.randint(0, 0xFFFFFF):06x}' for obs in unique_observers}
+
+    # Create a Plotly figure
+    fig = make_subplots(rows=1, cols=1)
+
+    for obs in unique_observers:
+        obs_mjd = [date[i] for i in range(len(observer)) if observer[i] == obs]
+        obs_magnitude = [magnitude[i] for i in range(len(observer)) if observer[i] == obs]
+        obs_error = [error[i] for i in range(len(observer)) if observer[i] == obs]
+
+        fig.add_trace(go.Scatter(
+            x=obs_mjd,
+            y=obs_magnitude,
+            mode='markers+lines',
+            error_y=dict(type='data', array=obs_error, visible=True, color=observer_colors[obs]),
+            name=obs,
+            marker=dict(color=observer_colors[obs])
+        ))
+
+    fig.update_layout(
+        title="Photometry Data",
+        xaxis_title="Date (DD-MM-YYYY)",
+        yaxis_title="Magnitude",
+        yaxis_autorange='reversed',  # Common in astronomy for magnitudes
+        height=600,
+        width=800,
+        legend_title="Observers"
+    )
+
+    # Show plot in web browser
+    pio.show(fig)
+
+
+# Function to handle the photometry download and plot
+def download_photometry_request(auth_token, name):
+    request_body = {
+        "name": name,
+    }
+
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Token {auth_token}',
+        'Content-Type': 'application/json',
+        'X-CSRFToken': 'uUz2fRnXhPuvD9YuuiDW9cD1LsajeaQnE4hwtEAfR00SgV9bD5HCe5i8n4m4KcOr'
+    }
+    api_url = "https://bh-tom2.astrolabs.pl/targets/download-photometry/"
+
+    response = requests.post(api_url, json=request_body, headers=headers)
+
+    if response.status_code == 200:
+        if response.text:
+            print("Photometry Data Received:")
+            print(response.text)  # Debug: print raw data
+            plot_photometry_data(response.text)
+        else:
+            print("Empty Response")
+            messagebox.showinfo("Photometry Data", "The photometry response is empty.")
+    else:
+        print(f"Request for {name} failed with status code {response.status_code}")
+        messagebox.showerror("Photometry Request Failed",
+                             f"Request for {name} failed with status code {response.status_code}")
+
+
+# Function to create a new target if it doesn't exist
 def create_target(name, ra, dec, epoch, classification, discovery_date, importance, cadence, token):
     headers = {
         "Content-Type": "application/json",
@@ -34,46 +144,7 @@ def create_target(name, ra, dec, epoch, classification, discovery_date, importan
         return False
 
 
-def download_photometry_request(auth_token, name):
-    request_body = {
-        "name": name,
-    }
-
-    headers = {
-        'accept': 'application/json',
-        'Authorization': f'Token {auth_token}',
-        'Content-Type': 'application/json',
-        'X-CSRFToken': 'uUz2fRnXhPuvD9YuuiDW9cD1LsajeaQnE4hwtEAfR00SgV9bD5HCe5i8n4m4KcOr'
-    }
-    api_url = "https://bh-tom2.astrolabs.pl/targets/download-photometry/"
-
-    response = requests.post(api_url, json=request_body, headers=headers)
-
-    if response.status_code == 200:
-        if response.text:
-            display_photometry_data(response.text)
-        else:
-            print("Empty Response")
-            messagebox.showinfo("Photometry Data", "The photometry response is empty.")
-    else:
-        print(f"Request for {name} failed with status code {response.status_code}")
-        messagebox.showerror("Photometry Request Failed",
-                             f"Request for {name} failed with status code {response.status_code}")
-
-
-def display_photometry_data(photometry_data):
-    photometry_window = tk.Toplevel()
-    photometry_window.title("Photometry Data")
-
-    text_widget = Text(photometry_window, wrap='word')
-    text_widget.insert('1.0', photometry_data)
-    text_widget.pack(expand=True, fill='both')
-
-    scrollbar = Scrollbar(photometry_window, command=text_widget.yview)
-    text_widget.config(yscrollcommand=scrollbar.set)
-    scrollbar.pack(side='right', fill='y')
-
-
+# Function to upload calibrated files
 def upload_calibrated_files(calibrated_image_paths, token, target_name, app):
     observatory_name = 'AZT-8_C4-16000'
     filter_name = 'GaiaSP/any'
