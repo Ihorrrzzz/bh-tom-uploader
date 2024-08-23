@@ -1,7 +1,8 @@
 import os
 import requests
 import tkinter as tk
-from tkinter import messagebox, simpledialog
+from tkinter import messagebox, simpledialog, filedialog, Button
+from PIL import Image, ImageTk
 import json
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
@@ -9,6 +10,9 @@ from datetime import datetime
 from astropy.time import Time
 import random
 import plotly.io as pio
+import webbrowser
+import tempfile
+import io
 
 
 # Converts MJD to standard date format (DD-MM-YYYY)
@@ -17,8 +21,18 @@ def mjd_to_date(mjd):
     return t.datetime.strftime('%d-%m-%Y')
 
 
-# Parse the photometry data and plot it
-def plot_photometry_data(data):
+# Generate a shade of a given color
+def adjust_color_shade(color, factor):
+    color = color.lstrip('#')
+    r, g, b = tuple(int(color[i:i + 2], 16) for i in (0, 2, 4))
+    r = int(r * factor)
+    g = int(g * factor)
+    b = int(b * factor)
+    return f'#{r:02x}{g:02x}{b:02x}'
+
+
+# Parse the photometry data and create a light curve
+def plot_light_curve(data, app):
     if not data:
         messagebox.showinfo("No Data", "No photometry data available to plot.")
         return
@@ -35,6 +49,7 @@ def plot_photometry_data(data):
     magnitude = []
     error = []
     observer = []
+    filter_name = []
     date = []
 
     # Parse data
@@ -46,11 +61,21 @@ def plot_photometry_data(data):
             mjd.append(mjd_value)
             magnitude.append(float(fields[1]))
             error.append(float(fields[2]))
+            filter_name.append(fields[4])
             observer.append(fields[5])
 
-    # Assign random colors to each observer
+    # Assign random colors to each observer and shades for each filter
     unique_observers = list(set(observer))
     observer_colors = {obs: f'#{random.randint(0, 0xFFFFFF):06x}' for obs in unique_observers}
+    obs_filter_colors = {}
+
+    for obs in unique_observers:
+        obs_filters = list(set([filter_name[i] for i in range(len(observer)) if observer[i] == obs]))
+        n_filters = len(obs_filters)
+        for i, filt in enumerate(obs_filters):
+            shade_factor = 1 - (i / (n_filters + 1))
+            base_color = observer_colors[obs]
+            obs_filter_colors[(obs, filt)] = adjust_color_shade(base_color, shade_factor)
 
     # Create a Plotly figure
     fig = make_subplots(rows=1, cols=1)
@@ -59,18 +84,27 @@ def plot_photometry_data(data):
         obs_mjd = [date[i] for i in range(len(observer)) if observer[i] == obs]
         obs_magnitude = [magnitude[i] for i in range(len(observer)) if observer[i] == obs]
         obs_error = [error[i] for i in range(len(observer)) if observer[i] == obs]
+        obs_filters = [filter_name[i] for i in range(len(observer)) if observer[i] == obs]
 
-        fig.add_trace(go.Scatter(
-            x=obs_mjd,
-            y=obs_magnitude,
-            mode='markers+lines',
-            error_y=dict(type='data', array=obs_error, visible=True, color=observer_colors[obs]),
-            name=obs,
-            marker=dict(color=observer_colors[obs])
-        ))
+        for filt in set(obs_filters):
+            filtered_indices = [i for i in range(len(obs_filters)) if obs_filters[i] == filt]
+            filt_mjd = [obs_mjd[i] for i in filtered_indices]
+            filt_magnitude = [obs_magnitude[i] for i in filtered_indices]
+            filt_error = [obs_error[i] for i in filtered_indices]
+            filt_color = obs_filter_colors[(obs, filt)]
+
+            fig.add_trace(go.Scatter(
+                x=filt_mjd,
+                y=filt_magnitude,
+                mode='markers+lines',
+                error_y=dict(type='data', array=filt_error, visible=True, color=filt_color),
+                name=f"{obs} - {filt}",
+                marker=dict(color=filt_color, size=4),  # 50% smaller points
+                line=dict(width=0.75)  # 50% thinner lines
+            ))
 
     fig.update_layout(
-        title="Photometry Data",
+        title="Light Curve",
         xaxis_title="Date (DD-MM-YYYY)",
         yaxis_title="Magnitude",
         yaxis_autorange='reversed',  # Common in astronomy for magnitudes
@@ -79,12 +113,34 @@ def plot_photometry_data(data):
         legend_title="Observers"
     )
 
-    # Show plot in web browser
-    pio.show(fig)
+    # Convert the figure to an image and display it in a Tkinter window
+    img_buffer = io.BytesIO()
+    fig.write_image(img_buffer, format='png')
+    img_buffer.seek(0)
+
+    img = Image.open(img_buffer)
+    img_tk = ImageTk.PhotoImage(img)
+
+    light_curve_window = tk.Toplevel(app)
+    light_curve_window.title("Light Curve")
+
+    label = tk.Label(light_curve_window, image=img_tk)
+    label.image = img_tk  # Keep a reference to avoid garbage collection
+    label.pack()
+
+    # Add a button to open the full interactive plot in the browser
+    def open_in_browser():
+        # Use a temporary file to open the interactive plot in the default browser
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as tmp_file:
+            tmp_file.write(pio.to_html(fig, full_html=False).encode('utf-8'))
+            webbrowser.open(f"file://{tmp_file.name}")
+
+    open_browser_button = Button(light_curve_window, text="Open in Browser", command=open_in_browser)
+    open_browser_button.pack()
 
 
 # Function to handle the photometry download and plot
-def download_photometry_request(auth_token, name):
+def download_photometry_request(auth_token, name, app):
     request_body = {
         "name": name,
     }
@@ -103,7 +159,7 @@ def download_photometry_request(auth_token, name):
         if response.text:
             print("Photometry Data Received:")
             print(response.text)  # Debug: print raw data
-            plot_photometry_data(response.text)
+            plot_light_curve(response.text, app)
         else:
             print("Empty Response")
             messagebox.showinfo("Photometry Data", "The photometry response is empty.")
@@ -221,7 +277,7 @@ def upload_calibrated_files(calibrated_image_paths, token, target_name, app):
                         if 'target' not in retry_result:
                             messagebox.showinfo("Upload Successful",
                                                 f"Calibrated file successfully uploaded to BHTOM under target '{target_name}'.")
-                            download_photometry_request(token, target_name)
+                            download_photometry_request(token, target_name, app)
                         else:
                             messagebox.showerror("Upload Failed",
                                                  f"Failed to upload calibrated file after target creation.\nDetails: {retry_result}")
@@ -231,4 +287,4 @@ def upload_calibrated_files(calibrated_image_paths, token, target_name, app):
                 return
 
     messagebox.showinfo("Upload Completed", "All calibrated files have been uploaded to BHTOM.")
-    download_photometry_request(token, target_name)
+    download_photometry_request(token, target_name, app)
