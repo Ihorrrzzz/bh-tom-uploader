@@ -2,10 +2,10 @@ import os
 import requests
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-from calibration import load_fits_files, create_master_bias, create_master_dark, create_master_flat, calibrate_image, \
-    save_fits
+from calibration import load_fits_files, create_master_bias, create_master_dark, create_master_flat, calibrate_image, save_fits
 from uploader import upload_calibrated_files
 from auth import get_auth_token
+from login import login_window
 
 # Global variables to store file paths
 image_paths = []
@@ -15,16 +15,14 @@ flat_paths = []
 calibrated_image_paths = []
 selected_calibrated_file = None
 
-# Global variables for target name
+# Global variables for target name and authentication token
 target_name = ""
-
+token = ""
 
 # Function to update progress
 def update_progress(step, progress_var):
-    steps = ["Loading Calibration Frames", "Creating Master Bias", "Creating Master Dark", "Creating Master Flat",
-             "Calibrating Images"]
+    steps = ["Loading Calibration Frames", "Creating Master Bias", "Creating Master Dark", "Creating Master Flat", "Calibrating Images"]
     progress_var.set(f"Step {step + 1} of {len(steps)}: {steps[step]}")
-
 
 # Function to process images
 def process_images(image_paths, bias_paths, dark_paths, flat_paths, token, progress_var):
@@ -49,22 +47,18 @@ def process_images(image_paths, bias_paths, dark_paths, flat_paths, token, progr
 
             # Step 4: Create master flat
             update_progress(3, progress_var)
-            master_flat = create_master_flat(flat_ccds, master_bias,
-                                             master_dark) if flat_ccds and master_bias and master_dark else None
+            master_flat = create_master_flat(flat_ccds, master_bias, master_dark) if flat_ccds and master_bias and master_dark else None
 
             # Step 5: Calibrate the image
             update_progress(4, progress_var)
-            calibrated_image = calibrate_image(image_path, master_bias, master_dark,
-                                               master_flat) if master_bias and master_dark and master_flat else None
+            calibrated_image = calibrate_image(image_path, master_bias, master_dark, master_flat) if master_bias and master_dark and master_flat else None
 
             if calibrated_image:
-                calibrated_image_path = image_path.replace(".fits", "_calibrated.fits").replace(".fit",
-                                                                                                "_calibrated.fit")
+                calibrated_image_path = image_path.replace(".fits", "_calibrated.fits").replace(".fit", "_calibrated.fit")
                 save_fits(calibrated_image, calibrated_image_path)
                 calibrated_image_paths.append(calibrated_image_path)
             else:
-                messagebox.showinfo("Calibration Not Completed",
-                                    f"Calibration was not completed for {os.path.basename(image_path)} due to missing files.")
+                messagebox.showinfo("Calibration Not Completed", f"Calibration was not completed for {os.path.basename(image_path)} due to missing files.")
 
         if calibrated_image_paths:
             ask_target_name()
@@ -72,7 +66,6 @@ def process_images(image_paths, bias_paths, dark_paths, flat_paths, token, progr
     except Exception as e:
         messagebox.showerror("Error", f"Error processing image {image_path}: {e}")
         print(f"Error processing image {image_path}: {e}")
-
 
 # Functions to select files
 def select_fits_files():
@@ -83,7 +76,6 @@ def select_fits_files():
         return
     fits_label.config(text=f"Selected FITS Files: {len(image_paths)} files")
 
-
 def select_bias_frames():
     global bias_paths
     bias_paths = filedialog.askopenfilenames(title="Select Bias Frames", filetypes=[("FITS files", "*.fits *.fit")])
@@ -91,7 +83,6 @@ def select_bias_frames():
         messagebox.showinfo("No bias frames selected", "Please select at least one bias frame.")
     else:
         bias_label.config(text=f"Selected Bias Frames: {len(bias_paths)} files")
-
 
 def select_dark_frames():
     global dark_paths
@@ -101,7 +92,6 @@ def select_dark_frames():
     else:
         dark_label.config(text=f"Selected Dark Frames: {len(dark_paths)} files")
 
-
 def select_flat_frames():
     global flat_paths
     flat_paths = filedialog.askopenfilenames(title="Select Flat Frames", filetypes=[("FITS files", "*.fits *.fit")])
@@ -110,58 +100,34 @@ def select_flat_frames():
     else:
         flat_label.config(text=f"Selected Flat Frames: {len(flat_paths)} files")
 
-
 def select_calibrated_file():
     global selected_calibrated_file
-    selected_calibrated_file = filedialog.askopenfilename(title="Select Calibrated FITS File",
-                                                          filetypes=[("FITS files", "*.fits *.fit")])
+    selected_calibrated_file = filedialog.askopenfilename(title="Select Calibrated FITS File", filetypes=[("FITS files", "*.fits *.fit")])
     if not selected_calibrated_file:
         messagebox.showinfo("No file selected", "Please select a calibrated FITS file.")
     else:
         calibrated_file_label.config(text=f"Selected Calibrated File: {selected_calibrated_file}")
         ask_target_name()  # Ask for the target name after selecting the file
 
-
 def start_processing():
     if not image_paths:
         messagebox.showinfo("No FITS files", "Please select at least one FITS file.")
         return
     try:
-        token = get_auth_token(username, password)
         process_images(image_paths, bias_paths, dark_paths, flat_paths, token, progress_var)
     except Exception as e:
         messagebox.showerror("Error", f"Error processing selected files: {e}")
         print(f"Error processing selected files: {e}")
-
 
 def upload_selected_calibrated_file():
     if not selected_calibrated_file:
         messagebox.showinfo("No file selected", "Please select a calibrated FITS file.")
         return
     try:
-        token = get_auth_token(username, password)
         upload_calibrated_files([selected_calibrated_file], token, target_name, app)
     except Exception as e:
         messagebox.showerror("Error", f"Error uploading calibrated file: {e}")
         print(f"Error uploading calibrated file: {e}")
-
-
-# Function to handle login
-def handle_login():
-    global username
-    global password
-    username = username_entry.get()
-    password = password_entry.get()
-
-    try:
-        global token
-        token = get_auth_token(username, password)
-        login_window.destroy()
-        create_main_window()
-    except requests.exceptions.HTTPError as e:
-        messagebox.showerror("Login Failed", f"Invalid credentials. Please try again.\nDetails: {e}")
-        print(f"Login failed: {e.response.content}")
-
 
 # Function to ask for Target Name
 def ask_target_name():
@@ -173,33 +139,14 @@ def ask_target_name():
     target_name_entry = tk.Entry(target_name_window)
     target_name_entry.pack(pady=5)
 
-    submit_button = tk.Button(target_name_window, text="Submit",
-                              command=lambda: handle_target_name_submit(target_name_window))
+    submit_button = tk.Button(target_name_window, text="Submit", command=lambda: handle_target_name_submit(target_name_window))
     submit_button.pack(pady=20)
-
 
 def handle_target_name_submit(window):
     global target_name
     target_name = target_name_entry.get()
     window.destroy()
     upload_button.config(state=tk.NORMAL)  # Enable the upload button after target name is entered
-
-
-# Create login window
-login_window = tk.Tk()
-login_window.title("Login to BHTOM")
-
-tk.Label(login_window, text="Username").pack(pady=5)
-username_entry = tk.Entry(login_window)
-username_entry.pack(pady=5)
-
-tk.Label(login_window, text="Password").pack(pady=5)
-password_entry = tk.Entry(login_window, show="*")
-password_entry.pack(pady=5)
-
-login_button = tk.Button(login_window, text="Login", command=handle_login)
-login_button.pack(pady=20)
-
 
 # Function to create the main window
 def create_main_window():
@@ -245,8 +192,7 @@ def create_main_window():
     progress_label = tk.Label(frame, textvariable=progress_var)
     progress_label.pack(side=tk.TOP, padx=10, pady=5)
 
-    upload_button = tk.Button(frame, text="Upload Result to BHTOM",
-                              command=lambda: upload_calibrated_files(calibrated_image_paths, token, target_name, app))
+    upload_button = tk.Button(frame, text="Upload Result to BHTOM", command=lambda: upload_calibrated_files(calibrated_image_paths, token, target_name, app))
     upload_button.pack(side=tk.TOP, padx=10, pady=20)
     upload_button.config(state=tk.DISABLED)  # Disable initially until calibration is complete
 
@@ -254,9 +200,21 @@ def create_main_window():
     calibrated_file_label = tk.Label(frame, text="No calibrated file selected")
     calibrated_file_label.pack(side=tk.TOP, padx=10, pady=5)
 
-    tk.Button(frame, text="Upload Selected Calibrated File to BHTOM", command=upload_selected_calibrated_file).pack(
-        side=tk.TOP, padx=10, pady=20)
+    tk.Button(frame, text="Upload Selected Calibrated File to BHTOM", command=upload_selected_calibrated_file).pack(side=tk.TOP, padx=10, pady=20)
 
     app.mainloop()
 
-login_window.mainloop()
+# Function to handle login
+def handle_login(username, password, root):
+    global token
+    try:
+        token = get_auth_token(username, password)
+        print("Successfully logged in")
+        root.destroy()  # Close the login window
+        create_main_window()  # Open the main window
+    except Exception as e:
+        print(f"Login failed: {e}")
+        tk.messagebox.showerror("Login Failed", "Invalid credentials. Please try again.")
+
+# Start the login process
+login_window(handle_login)

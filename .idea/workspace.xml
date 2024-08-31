@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="40da7297-be68-47cb-84f8-74df44209d9f" name="Changes" comment="Receiving photometry as a raw data and showing the chart in Tkinter window; option to review the photometry in browser is provided.">
+    <list default="true" id="40da7297-be68-47cb-84f8-74df44209d9f" name="Changes" comment="Receiving photometry as a raw data and showing the chart in Tkinter window; option to review the photometry in browser is provided, bug with hiding button is fixed. Improved directory logic.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/light_curve.py" beforeDir="false" afterPath="$PROJECT_DIR$/light_curve.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uploader.py" beforeDir="false" afterPath="$PROJECT_DIR$/uploader.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -151,7 +150,15 @@
       <option name="project" value="LOCAL" />
       <updated>1724442570814</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="Receiving photometry as a raw data and showing the chart in Tkinter window; option to review the photometry in browser is provided, bug with hiding button is fixed. Improved directory logic.">
+      <option name="closed" value="true" />
+      <created>1724512143502</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1724512143502</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -171,6 +178,7 @@
     <MESSAGE value="Receiving photomtry as a raw data. Photometry BETA" />
     <MESSAGE value="Receiving photomtry as a raw data and showing the chart in the browser. Photometry BETA 2" />
     <MESSAGE value="Receiving photometry as a raw data and showing the chart in Tkinter window; option to review the photometry in browser is provided." />
-    <option name="LAST_COMMIT_MESSAGE" value="Receiving photometry as a raw data and showing the chart in Tkinter window; option to review the photometry in browser is provided." />
+    <MESSAGE value="Receiving photometry as a raw data and showing the chart in Tkinter window; option to review the photometry in browser is provided, bug with hiding button is fixed. Improved directory logic." />
+    <option name="LAST_COMMIT_MESSAGE" value="Receiving photometry as a raw data and showing the chart in Tkinter window; option to review the photometry in browser is provided, bug with hiding button is fixed. Improved directory logic." />
   </component>
 </project>
