@@ -1,6 +1,13 @@
 import tkinter as tk
-from tkinter import Canvas
+import json
+import os
+from tkinter import Canvas, messagebox
 from PIL import Image, ImageTk
+from datetime import datetime, timedelta
+
+# File where we will store the user credentials
+CREDENTIALS_FILE = 'credentials.json'
+EXPIRATION_HOURS = 24  # Credentials are valid for 24 hours
 
 # Function to open the forgot password URL
 def open_forgot_password(event):
@@ -50,6 +57,32 @@ def create_rounded_rect(canvas, x1, y1, x2, y2, radius=4, **kwargs):
         x1, y1,
     ]
     return canvas.create_polygon(points, **kwargs, smooth=True)
+
+# Function to save credentials to a file
+def save_credentials(username, password):
+    data = {
+        'username': username,
+        'password': password,
+        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    }
+    with open(CREDENTIALS_FILE, 'w') as file:
+        json.dump(data, file)
+
+# Function to load saved credentials from the file (if they exist and are not expired)
+def load_credentials():
+    if os.path.exists(CREDENTIALS_FILE):
+        with open(CREDENTIALS_FILE, 'r') as file:
+            data = json.load(file)
+            # Check if the saved credentials are still valid
+            saved_time = datetime.strptime(data['timestamp'], '%Y-%m-%d %H:%M:%S')
+            if datetime.now() - saved_time < timedelta(hours=EXPIRATION_HOURS):
+                return data['username'], data['password']
+    return None, None
+
+# Function to delete saved credentials
+def delete_credentials():
+    if os.path.exists(CREDENTIALS_FILE):
+        os.remove(CREDENTIALS_FILE)
 
 # Function to display the login window
 def login_window(handle_login):
@@ -179,5 +212,18 @@ def login_window(handle_login):
     # Create "Continue without login" label
     continue_label = tk.Label(root, text="Continue without login", font=("Manrope", 14), fg="#BDC1CA", bg="#151515", cursor="hand2")
     continue_label.place(x=(width - continue_label.winfo_reqwidth()) // 2, y=continue_label_y)
+
+    # Load saved credentials (if available and not expired)
+    saved_username, saved_password = load_credentials()
+    if saved_username and saved_password:
+        entry_email.delete(0, tk.END)
+        entry_email.insert(0, saved_username)
+        entry_email.config(fg=entry_typing_fg)  # Set to typing color (black)
+
+        entry_password.delete(0, tk.END)
+        entry_password.insert(0, saved_password)
+        entry_password.config(fg=entry_typing_fg)  # Set to typing color (black)
+
+        remember_var.set(1)  # Set the "Remember me" checkbox to checked
 
     root.mainloop()

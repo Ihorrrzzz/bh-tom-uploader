@@ -5,7 +5,7 @@ from tkinter import filedialog, messagebox, ttk
 from calibration import load_fits_files, create_master_bias, create_master_dark, create_master_flat, calibrate_image, save_fits
 from uploader import upload_calibrated_files
 from auth import get_auth_token
-from login import login_window
+from login import login_window, save_credentials, delete_credentials
 
 # Global variables to store file paths
 image_paths = []
@@ -202,6 +202,10 @@ def create_main_window():
 
     tk.Button(frame, text="Upload Selected Calibrated File to BHTOM", command=upload_selected_calibrated_file).pack(side=tk.TOP, padx=10, pady=20)
 
+    # Add a logout button
+    logout_button = tk.Button(frame, text="Logout", command=lambda: (delete_credentials(), app.destroy(), login_window(handle_login)), fg="red")
+    logout_button.pack(side=tk.TOP, padx=10, pady=20)
+
     app.mainloop()
 
 # Function to handle login
@@ -211,6 +215,7 @@ def handle_login(username, password, root):
         token = get_auth_token(username, password)
         print("Successfully logged in")
         root.destroy()  # Close the login window
+        save_credentials(username, password)
         create_main_window()  # Open the main window
     except Exception as e:
         print(f"Login failed: {e}")
