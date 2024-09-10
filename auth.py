@@ -1,6 +1,5 @@
 import requests
 
-
 def get_auth_token(username, password):
     url = 'https://bh-tom2.astrolabs.pl/api/token-auth/'
     payload = {
