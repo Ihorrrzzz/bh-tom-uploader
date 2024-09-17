@@ -4,14 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="40da7297-be68-47cb-84f8-74df44209d9f" name="Changes" comment="Calibration is implemented">
+    <list default="true" id="40da7297-be68-47cb-84f8-74df44209d9f" name="Changes" comment="Calibration process improved; uploading logic clarified and tested 28 out 30 files successfully uploaded. Functionality of taking RA and DEC from fits header is implemented">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/auth.py" beforeDir="false" afterPath="$PROJECT_DIR$/auth.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/calibration.py" beforeDir="false" afterPath="$PROJECT_DIR$/calibration.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/light_curve.py" beforeDir="false" afterPath="$PROJECT_DIR$/light_curve.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/login.py" beforeDir="false" afterPath="$PROJECT_DIR$/login.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uploader.py" beforeDir="false" afterPath="$PROJECT_DIR$/uploader.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -187,7 +181,31 @@
       <option name="project" value="LOCAL" />
       <updated>1725935933440</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="Calibration with header inheritance is implemented">
+      <option name="closed" value="true" />
+      <created>1726532885774</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1726532885774</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Calibration process improved; uploading logic clarified and tested 28 out 30 files successfully uploaded">
+      <option name="closed" value="true" />
+      <created>1726536661038</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1726536661038</updated>
+    </task>
+    <task id="LOCAL-00013" summary="Calibration process improved; uploading logic clarified and tested 28 out 30 files successfully uploaded. Functionality of taking RA and DEC from fits header is implemented">
+      <option name="closed" value="true" />
+      <created>1726615322926</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1726615322926</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -211,6 +229,9 @@
     <MESSAGE value="Folders logic improved added better GUI for login window" />
     <MESSAGE value="Folders logic improved added better GUI for login window; Remember me button logic set up" />
     <MESSAGE value="Calibration is implemented" />
-    <option name="LAST_COMMIT_MESSAGE" value="Calibration is implemented" />
+    <MESSAGE value="Calibration with header inheritance is implemented" />
+    <MESSAGE value="Calibration process improved; uploading logic clarified and tested 28 out 30 files successfully uploaded" />
+    <MESSAGE value="Calibration process improved; uploading logic clarified and tested 28 out 30 files successfully uploaded. Functionality of taking RA and DEC from fits header is implemented" />
+    <option name="LAST_COMMIT_MESSAGE" value="Calibration process improved; uploading logic clarified and tested 28 out 30 files successfully uploaded. Functionality of taking RA and DEC from fits header is implemented" />
   </component>
 </project>

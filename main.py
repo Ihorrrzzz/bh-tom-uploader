@@ -25,9 +25,9 @@ class CalibrationApp:
         self.calibration_button.pack(padx=10, pady=20)
 
         # Button for uploading the calibrated files
-        self.upload_button = tk.Button(self.frame, text="Upload Calibrated Files", command=self.upload_calibrated_files)
+        self.upload_button = tk.Button(self.frame, text="Bulk Upload", command=self.upload_calibrated_files)
         self.upload_button.pack(padx=10, pady=20)
-        self.upload_button.config(state=tk.DISABLED)  # Disabled until calibration is complete
+        # self.upload_button.config(state=tk.DISABLED)  # Disabled until calibration is complete
 
         # Logout button
         self.logout_button = tk.Button(self.frame, text="Logout", command=self.logout, fg="red")

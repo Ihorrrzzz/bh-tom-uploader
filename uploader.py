@@ -2,6 +2,7 @@ import os
 import requests  # Ensure requests is imported here
 import tkinter as tk
 from tkinter import messagebox, simpledialog
+from astropy.io import fits
 from light_curve import download_photometry_request  # Import photometry function from light_curve
 
 def create_target(name, ra, dec, epoch, classification, discovery_date, importance, cadence, token):
@@ -32,6 +33,19 @@ def create_target(name, ra, dec, epoch, classification, discovery_date, importan
     else:
         messagebox.showerror("Target Creation Failed", f"Failed to create target '{name}'.\nDetails: {response_json}")
         return False
+
+# Extract RA and DEC from FITS file header
+def extract_ra_dec_from_fits(fits_file):
+    try:
+        with fits.open(fits_file) as hdul:
+            header = hdul[0].header
+            ra = header.get('RA')
+            dec = header.get('DEC')
+            if ra is not None and dec is not None:
+                return float(ra), float(dec)
+    except Exception as e:
+        print(f"Error extracting RA/DEC from {fits_file}: {e}")
+    return None, None
 
 def upload_calibrated_files(calibrated_image_paths, token, target_name, app):
     observatory_name = 'AZT-8_C4-16000'
@@ -64,16 +78,20 @@ def upload_calibrated_files(calibrated_image_paths, token, target_name, app):
                 messagebox.showwarning("Target Not Found",
                                        f"Target '{target_name}' does not exist. Please enter the necessary details to create it.")
 
-                ra = simpledialog.askstring("Input", "Enter Right Ascension (RA) for the target:", parent=app)
-                dec = simpledialog.askstring("Input", "Enter Declination (Dec) for the target:", parent=app)
+                # Try to extract RA and DEC from the first calibrated image header
+                ra, dec = extract_ra_dec_from_fits(calibrated_image_path)
 
                 if ra is None or dec is None:
-                    messagebox.showerror("Input Error", "RA and Dec are mandatory fields. Target creation aborted.")
-                    return
+                    # If RA/DEC not in header, prompt the user
+                    ra = simpledialog.askstring("Input", "Enter Right Ascension (RA) for the target:", parent=app)
+                    dec = simpledialog.askstring("Input", "Enter Declination (Dec) for the target:", parent=app)
+                    if ra is None or dec is None:
+                        messagebox.showerror("Input Error", "RA and Dec are mandatory fields. Target creation aborted.")
+                        return
+                    ra = float(ra)
+                    dec = float(dec)
 
-                ra = float(ra)
-                dec = float(dec)
-
+                # Additional details from the user
                 epoch = simpledialog.askstring("Input", "Enter Epoch (default 2000.0):", parent=app)
                 classification = simpledialog.askstring("Input", "Enter Classification (default 'Unknown'):",
                                                         parent=app)
