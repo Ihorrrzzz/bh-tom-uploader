@@ -4,11 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="40da7297-be68-47cb-84f8-74df44209d9f" name="Changes" comment="Folders logic improved added better GUI for login window">
+    <list default="true" id="40da7297-be68-47cb-84f8-74df44209d9f" name="Changes" comment="Calibration is implemented">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.ini" beforeDir="false" afterPath="$PROJECT_DIR$/config.ini" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/auth.py" beforeDir="false" afterPath="$PROJECT_DIR$/auth.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/calibration.py" beforeDir="false" afterPath="$PROJECT_DIR$/calibration.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/light_curve.py" beforeDir="false" afterPath="$PROJECT_DIR$/light_curve.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/login.py" beforeDir="false" afterPath="$PROJECT_DIR$/login.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uploader.py" beforeDir="false" afterPath="$PROJECT_DIR$/uploader.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -168,7 +171,23 @@
       <option name="project" value="LOCAL" />
       <updated>1725115896076</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="Folders logic improved added better GUI for login window; Remember me button logic set up">
+      <option name="closed" value="true" />
+      <created>1725933345630</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1725933345630</updated>
+    </task>
+    <task id="LOCAL-00010" summary="Calibration is implemented">
+      <option name="closed" value="true" />
+      <created>1725935933440</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1725935933440</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -190,6 +209,8 @@
     <MESSAGE value="Receiving photometry as a raw data and showing the chart in Tkinter window; option to review the photometry in browser is provided." />
     <MESSAGE value="Receiving photometry as a raw data and showing the chart in Tkinter window; option to review the photometry in browser is provided, bug with hiding button is fixed. Improved directory logic." />
     <MESSAGE value="Folders logic improved added better GUI for login window" />
-    <option name="LAST_COMMIT_MESSAGE" value="Folders logic improved added better GUI for login window" />
+    <MESSAGE value="Folders logic improved added better GUI for login window; Remember me button logic set up" />
+    <MESSAGE value="Calibration is implemented" />
+    <option name="LAST_COMMIT_MESSAGE" value="Calibration is implemented" />
   </component>
 </project>

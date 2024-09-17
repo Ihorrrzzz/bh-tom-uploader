@@ -37,6 +37,8 @@ def categorize_files(folder):
                 imagetyp = header.get('IMAGETYP', '').upper()
                 if 'LIGHT' in imagetyp:
                     lights.append(filepath)
+                elif 'OBJECT' in imagetyp:
+                    lights.append(filepath)
                 elif 'DARK' in imagetyp:
                     darks.append(filepath)
                 elif 'FLAT' in imagetyp:
@@ -58,15 +60,19 @@ def process_calibration(lights, darks, flats, biases):
     calibrated_lights = []
 
     for light in lights:
-        data = fits.getdata(light).astype(np.float64)
-        if master_bias is not None:
-            data -= master_bias
-        if master_dark is not None:
-            data -= master_dark
-        if master_flat is not None:
-            data /= master_flat
+        with fits.open(light) as hdul:
+            data = hdul[0].data.astype(np.float64)
+            header = hdul[0].header  # Get the original header from the light frame
 
-        calibrated_lights.append(data)
+            if master_bias is not None:
+                data -= master_bias
+            if master_dark is not None:
+                data -= master_dark
+            if master_flat is not None:
+                data /= master_flat
+
+            # Append the calibrated data with its header to the result list
+            calibrated_lights.append((data, header))
 
     return calibrated_lights
 
@@ -74,9 +80,9 @@ def save_calibrated_files(calibrated_lights, lights, folder_selected):
     calibrated_folder = os.path.join(folder_selected, "Calibrated files")
     os.makedirs(calibrated_folder, exist_ok=True)
 
-    for i, light in enumerate(lights):
-        hdu = fits.PrimaryHDU(calibrated_lights[i])
-        output_path = os.path.join(calibrated_folder, f"calibrated_{os.path.basename(light)}")
+    for i, (calibrated_data, header) in enumerate(calibrated_lights):
+        hdu = fits.PrimaryHDU(calibrated_data, header=header)  # Use the original header
+        output_path = os.path.join(calibrated_folder, f"calibrated_{os.path.basename(lights[i])}")
         hdu.writeto(output_path, overwrite=True)
 
     messagebox.showinfo("Success", f"Calibrated files saved in {calibrated_folder}")
