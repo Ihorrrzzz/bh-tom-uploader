@@ -71,6 +71,9 @@ def process_calibration(lights, darks, flats, biases):
             if master_flat is not None:
                 data /= master_flat
 
+            # Replace NaN and Inf values with zero or another value
+            data = np.nan_to_num(data, nan=0.0, posinf=0.0, neginf=0.0)
+
             # Append the calibrated data with its header to the result list
             calibrated_lights.append((data, header))
 
@@ -82,7 +85,20 @@ def save_calibrated_files(calibrated_lights, lights, folder_selected):
 
     for i, (calibrated_data, header) in enumerate(calibrated_lights):
         hdu = fits.PrimaryHDU(calibrated_data, header=header)  # Use the original header
+
         output_path = os.path.join(calibrated_folder, f"calibrated_{os.path.basename(lights[i])}")
-        hdu.writeto(output_path, overwrite=True)
+        try:
+            hdu.writeto(output_path, overwrite=True)
+
+            # Verify the file after writing by attempting to open it
+            with fits.open(output_path) as test_hdul:
+                if test_hdul[0].data is None:
+                    raise ValueError("File was written but contains no data.")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save calibrated file {output_path}:\n{e}")
+            print(f"Failed to save calibrated file {output_path}: {e}")
+        else:
+            print(f"Calibrated file saved successfully: {output_path}")
 
     messagebox.showinfo("Success", f"Calibrated files saved in {calibrated_folder}")
