@@ -47,9 +47,9 @@ def extract_ra_dec_from_fits(fits_file):
         print(f"Error extracting RA/DEC from {fits_file}: {e}")
     return None, None
 
-def upload_calibrated_files(calibrated_image_paths, token, target_name, app):
-    observatory_name = 'AZT-8_C4-16000'
+def upload_calibrated_files(calibrated_image_paths, token, target_name, oname, app):
     filter_name = 'GaiaSP/any'
+    observatory_name = oname  # This will be passed from the camera selection
 
     for calibrated_image_path in calibrated_image_paths:
         with open(calibrated_image_path, 'rb') as f:

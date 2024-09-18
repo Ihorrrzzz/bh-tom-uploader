@@ -4,8 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="40da7297-be68-47cb-84f8-74df44209d9f" name="Changes" comment="Calibration process improved; uploading logic clarified and tested 28 out 30 files successfully uploaded. Functionality of taking RA and DEC from fits header is implemented">
+    <list default="true" id="40da7297-be68-47cb-84f8-74df44209d9f" name="Changes" comment="Option to select observatory and camera implemented">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -205,7 +206,23 @@
       <option name="project" value="LOCAL" />
       <updated>1726615322926</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="Calibration process improved; uploading logic clarified and tested 28 out 30 files successfully uploaded. Functionality of taking RA and DEC from fits header is implemented">
+      <option name="closed" value="true" />
+      <created>1726615432583</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1726615432583</updated>
+    </task>
+    <task id="LOCAL-00015" summary="Option to select observatory and camera implemented">
+      <option name="closed" value="true" />
+      <created>1726617606026</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1726617606026</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -232,6 +249,7 @@
     <MESSAGE value="Calibration with header inheritance is implemented" />
     <MESSAGE value="Calibration process improved; uploading logic clarified and tested 28 out 30 files successfully uploaded" />
     <MESSAGE value="Calibration process improved; uploading logic clarified and tested 28 out 30 files successfully uploaded. Functionality of taking RA and DEC from fits header is implemented" />
-    <option name="LAST_COMMIT_MESSAGE" value="Calibration process improved; uploading logic clarified and tested 28 out 30 files successfully uploaded. Functionality of taking RA and DEC from fits header is implemented" />
+    <MESSAGE value="Option to select observatory and camera implemented" />
+    <option name="LAST_COMMIT_MESSAGE" value="Option to select observatory and camera implemented" />
   </component>
 </project>
