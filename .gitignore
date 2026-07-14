@@ -1,0 +1,9 @@
+# Local BHTOM credentials saved by the login window (plaintext) — never commit
+credentials.json
+
+# Python virtual environment
+.venv/
+
+# Python bytecode cache
+__pycache__/
+*.pyc
