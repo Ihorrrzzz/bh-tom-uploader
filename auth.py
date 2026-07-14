@@ -1,7 +1,8 @@
 import requests
+from config import BHTOM_URL
 
 def get_auth_token(username, password):
-    url = 'https://bh-tom2.astrolabs.pl/api/token-auth/'
+    url = f'{BHTOM_URL}/api/token-auth/'
     payload = {
         "username": username,
         "password": password

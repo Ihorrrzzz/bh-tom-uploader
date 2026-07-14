@@ -4,6 +4,7 @@ import os
 from tkinter import Canvas, messagebox
 from PIL import Image, ImageTk
 from datetime import datetime, timedelta
+from config import BHTOM_URL
 
 # File where we will store the user credentials
 CREDENTIALS_FILE = 'credentials.json'
@@ -12,7 +13,7 @@ EXPIRATION_HOURS = 24  # Credentials are valid for 24 hours
 # Function to open the forgot password URL
 def open_forgot_password(event):
     import webbrowser
-    webbrowser.open("https://bh-tom2.astrolabs.pl")
+    webbrowser.open(BHTOM_URL)
 
 # Function to manage placeholder text
 def on_entry_focus_in(entry, default_text, color):

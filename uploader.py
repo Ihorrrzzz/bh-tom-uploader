@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog
 from astropy.io import fits
 from light_curve import download_photometry_request  # Import photometry function from light_curve
+from config import BHTOM_URL, UPLOAD_URL
 
 def create_target(name, ra, dec, epoch, classification, discovery_date, importance, cadence, token):
     headers = {
@@ -22,7 +23,7 @@ def create_target(name, ra, dec, epoch, classification, discovery_date, importan
         "cadence": cadence if cadence else 1.0,
     }
 
-    api_url = "https://bh-tom2.astrolabs.pl/targets/createTarget/"
+    api_url = f"{BHTOM_URL}/targets/createTarget/"
     response = requests.post(api_url, headers=headers, json=data)
     response_json = response.json()
     print("Create Target Response:", response_json)
@@ -64,7 +65,7 @@ def upload_calibrated_files(calibrated_image_paths, token, target_name, oname, a
             }
 
             response = requests.post(
-                url='https://uploadsvc2.astrolabs.pl/upload/',
+                url=f'{UPLOAD_URL}/upload/',
                 headers={
                     'Authorization': "Token " + str(token)
                 },
@@ -114,7 +115,7 @@ def upload_calibrated_files(calibrated_image_paths, token, target_name, oname, a
                 ):
                     with open(calibrated_image_path, 'rb') as retry_f:
                         retry_response = requests.post(
-                            url='https://uploadsvc2.astrolabs.pl/upload/',
+                            url=f'{UPLOAD_URL}/upload/',
                             headers={
                                 'Authorization': "Token " + str(token)
                             },

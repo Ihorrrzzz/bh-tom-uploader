@@ -11,6 +11,7 @@ import tempfile
 import plotly.io as pio
 import webbrowser
 import requests  # Ensure requests is imported here
+from config import BHTOM_URL
 
 
 # Converts MJD to standard date format (DD-MM-YYYY)
@@ -161,7 +162,7 @@ def download_photometry_request(auth_token, name, app):
         'Content-Type': 'application/json',
         'X-CSRFToken': 'uUz2fRnXhPuvD9YuuiDW9cD1LsajeaQnE4hwtEAfR00SgV9bD5HCe5i8n4m4KcOr'
     }
-    api_url = "https://bh-tom2.astrolabs.pl/targets/download-photometry/"
+    api_url = f"{BHTOM_URL}/targets/download-photometry/"
 
     response = requests.post(api_url, json=request_body, headers=headers)
 
