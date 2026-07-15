@@ -97,20 +97,40 @@ upload_url = https://uploadsvc2.bh-tom2.astrouw.edu.pl
 exposure scaling), scanner classification decision table, provenance round-trip,
 API client against recorded live response shapes, pipeline flows, journal, watcher stability logic.
 
-## Building the Windows .exe
+## Installing as a normal Windows app (no Python required)
+
+End users run **`BHTOM-Uploader-Setup-<version>.exe`** - a standard installer that
+installs per-user (no admin rights), adds a Start-menu entry and optional desktop
+icon, and uninstalls cleanly from Windows Settings. It contains only the
+application and `config.ini`; credentials are never bundled (each user's login is
+stored in their own Windows Credential Manager).
+
+### Building the installer
 
 ```bash
+# 1) freeze the app
 .venv\Scripts\python -m PyInstaller --noconfirm --clean --windowed --name "BHTOM Uploader" ^
   --icon "bhtom_uploader\resources\app.ico" ^
   --add-data "bhtom_uploader\resources;bhtom_uploader\resources" ^
   --exclude-module tkinter --exclude-module _tkinter main.py
 copy config.ini "dist\BHTOM Uploader\config.ini"
+
+# 2) compile the installer (Inno Setup 6)
+ISCC.exe installer.iss   ->  dist\BHTOM-Uploader-Setup-<version>.exe
 ```
 
-The result is a self-contained folder `dist/BHTOM Uploader/` - copy it anywhere, run
-`BHTOM Uploader.exe`. `config.ini` next to the exe is read at startup.
-Self-check of a built bundle: `"BHTOM Uploader.exe" --smoke` writes `smoke_result.txt`
-(verifies Qt boots and the Windows Credential Manager keyring backend is active).
+The intermediate `dist/BHTOM Uploader/` folder is itself portable: copy it anywhere
+and run `BHTOM Uploader.exe`. Self-check of a built bundle:
+`"BHTOM Uploader.exe" --smoke` writes `smoke_result.txt` (verifies Qt boots and the
+Windows Credential Manager keyring backend is active).
+
+## Supported input formats
+
+Plain FITS (`.fits/.fit/.fts`), fpack/gzip-compressed (`.fits.fz`, `.fits.gz`) and
+multi-extension FITS such as raw LCO Sinistro frames (metadata in the primary HDU,
+image in compressed extensions; the first image extension is processed). Validated
+end-to-end against a real public LCO night of the Gaia alert Gaia24amo
+(1-m cpt1m013 + Sinistro fa01: raw lights + same-camera bias/dark/sky-flat sets).
 
 ## Project layout
 
