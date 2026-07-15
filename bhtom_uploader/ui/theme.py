@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QGuiApplication, QPalette
+from PySide6.QtGui import QColor, QGuiApplication, QIcon, QPainter, QPalette, QPixmap
 
 ACCENT = "#DE3B40"          # BHTOM red - primary actions/selection only
 ACCENT_HOVER = "#E35257"
@@ -46,6 +46,22 @@ NIGHT = Tokens(
     window="#120404", base="#0A0202", alt="#1A0606",
     text="#D04040", subtext="#7A3030", button="#241010", border="#3A1414",
 )
+
+
+def tinted_icon(path, color: QColor) -> QIcon:
+    """Recolor a monochrome icon to the given color (keeps the alpha shape).
+
+    Used for the password eye icons so they stay visible on every theme's
+    input background instead of baking in one fixed color.
+    """
+    pixmap = QPixmap(str(path))
+    if pixmap.isNull():
+        return QIcon()
+    painter = QPainter(pixmap)
+    painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
+    painter.fillRect(pixmap.rect(), color)
+    painter.end()
+    return QIcon(pixmap)
 
 
 def system_prefers_dark() -> bool:
@@ -139,14 +155,25 @@ def _build_qss(t: Tokens) -> str:
 
     QToolTip {{ background: {t.alt}; color: {t.text}; border: 1px solid {t.border}; }}
 
-    /* dropdown popups: explicit colors so hovered items stay readable in every theme */
+    /* dropdown popups: explicit item colors so the hovered/selected entry is
+       ALWAYS accent background + white text, never theme-dependent fallbacks
+       (with a global stylesheet active, Qt otherwise falls back to the default
+       palette for popup items: white-ish highlight + white text on light) */
     QComboBox QAbstractItemView {{
-        background: {t.base}; color: {t.text}; border: 1px solid {t.border};
+        background-color: {t.base}; color: {t.text}; border: 1px solid {t.border};
         selection-background-color: {ACCENT}; selection-color: #FFFFFF; outline: 0;
     }}
-    QMenu {{ background: {t.window}; color: {t.text}; border: 1px solid {t.border}; }}
-    QMenu::item {{ padding: 5px 24px 5px 12px; }}
-    QMenu::item:selected {{ background: {ACCENT}; color: #FFFFFF; }}
+    QComboBox QAbstractItemView::item {{
+        background-color: transparent; color: {t.text}; padding: 4px 8px;
+        min-height: 22px;
+    }}
+    QComboBox QAbstractItemView::item:hover,
+    QComboBox QAbstractItemView::item:selected {{
+        background-color: {ACCENT}; color: #FFFFFF;
+    }}
+    QMenu {{ background-color: {t.window}; color: {t.text}; border: 1px solid {t.border}; }}
+    QMenu::item {{ background-color: transparent; color: {t.text}; padding: 5px 24px 5px 12px; }}
+    QMenu::item:selected {{ background-color: {ACCENT}; color: #FFFFFF; }}
     QMenu::item:disabled {{ color: {t.subtext}; }}
     QMenu::separator {{ height: 1px; background: {t.border}; margin: 4px 8px; }}
 

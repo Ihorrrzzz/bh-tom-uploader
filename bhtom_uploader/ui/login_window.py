@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Optional
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtGui import QPalette, QPixmap
 from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 from ..core import credentials
 from ..core.bhtom import BHTOMClient
 from ..core.settings import Settings, get_bhtom_url
+from .theme import tinted_icon
 from ..resources import resource_path
 from .worker import start_worker
 
@@ -62,9 +63,12 @@ class LoginDialog(QDialog):
         self.username_edit = QLineEdit(placeholderText="username")
         self.password_edit = QLineEdit(placeholderText="password")
         self.password_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        # eye toggle inside the field (the original app's icons, web-style)
-        self._icon_hidden = QIcon(str(resource_path("hidden.png")))
-        self._icon_visible = QIcon(str(resource_path("visible.png")))
+        # eye toggle inside the field (the original app's icons, web-style),
+        # tinted to the active theme so it stays visible on any input background
+        eye_color = self.palette().color(QPalette.ColorRole.Text)
+        eye_color.setAlphaF(0.72)
+        self._icon_hidden = tinted_icon(resource_path("hidden.png"), eye_color)
+        self._icon_visible = tinted_icon(resource_path("visible.png"), eye_color)
         self._eye_action = self.password_edit.addAction(
             self._icon_hidden, QLineEdit.ActionPosition.TrailingPosition
         )
