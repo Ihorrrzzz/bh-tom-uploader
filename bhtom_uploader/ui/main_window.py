@@ -41,7 +41,7 @@ from ..core.journal import UploadJournal
 from ..core.lightcurve import parse_photometry, render_interactive_html, render_thumbnail
 from ..core.models import FrameType, PlannedAction, ScanResult, UploadStatus
 from ..core.pipeline import Pipeline, RunOptions, RunReport
-from ..core.scanner import build_scan_result, scan_directory, scan_paths
+from ..core.scanner import build_scan_result, is_fits_name, scan_directory, scan_paths
 from ..core.settings import Settings
 from ..core.watcher import FolderWatcher
 from ..resources import resource_path
@@ -326,7 +326,7 @@ class MainWindow(QMainWindow):
         if dirs:
             self._scan_folder(dirs[0])
             return
-        fits_files = [p for p in paths if p.suffix.lower() in (".fits", ".fit", ".fts")]
+        fits_files = [p for p in paths if is_fits_name(p.name)]
         if fits_files:
             root = Path(os.path.commonpath([str(p.parent) for p in fits_files]))
             self._scan_files(fits_files, root)
@@ -432,6 +432,7 @@ class MainWindow(QMainWindow):
         return entries
 
     def _on_observatories(self, entries: list[dict]) -> None:
+        self._fav_onames = {e["oname"] for e in entries if e["fav"]}
         self.observatory_combo.clear()
         n_fav = sum(1 for e in entries if e["fav"])
         for i, entry in enumerate(entries):
@@ -535,6 +536,30 @@ class MainWindow(QMainWindow):
             on_error=self._on_run_failed,
         )
 
+    def _ensure_favourite_then_start(self, target: str, oname: str, allow_raw: bool) -> None:
+        """BHTOM's upload service only accepts cameras from the user's own
+        favourites list - add the picked one on demand, then start."""
+        if oname in getattr(self, "_fav_onames", set()):
+            self._start_pipeline(target, oname, allow_raw)
+            return
+        self._log(f"adding '{oname}' to your BHTOM favourite observatories (required for upload)")
+
+        def add():
+            self.client.add_favourite_observatory(oname, comment="added by BHTOM Uploader")
+            return oname
+
+        def on_added(added_oname: str) -> None:
+            self._fav_onames.add(added_oname)
+            self._start_pipeline(target, added_oname, allow_raw)
+
+        def on_error(message: str) -> None:
+            # maybe it already is a favourite (or the server phrasing changed):
+            # proceed anyway - the upload itself gives the definitive answer
+            self._log(f"could not add favourite ({message}) - trying the upload anyway")
+            self._start_pipeline(target, oname, allow_raw)
+
+        start_worker(add, on_result=on_added, on_error=on_error)
+
     def _after_target_check(self, target: str, oname: str, allow_raw: bool, exists: bool) -> None:
         if not exists:
             ra = dec = None
@@ -553,7 +578,7 @@ class MainWindow(QMainWindow):
             target = dialog.created_name or target
             self.target_edit.setText(target)
             self._log(f"created target '{target}' in BHTOM")
-        self._start_pipeline(target, oname, allow_raw)
+        self._ensure_favourite_then_start(target, oname, allow_raw)
 
     def _start_pipeline(self, target: str, oname: str, allow_raw: bool) -> None:
         # persist choices
@@ -575,6 +600,7 @@ class MainWindow(QMainWindow):
             flat_min_adu=self.settings.flat_min_adu,
             flat_max_adu=self.settings.flat_max_adu,
             cosmic_ray=self.settings.cosmic_ray,
+            saturation_adu=self.settings.saturation_adu,
         )
         self._pipeline = Pipeline(
             self.scan, options, self.client, calibrator=calibrator, journal=self.journal
@@ -831,7 +857,7 @@ class MainWindow(QMainWindow):
         )
         if runnable:
             self._log("watch: auto-starting upload of new files")
-            self._start_pipeline(target, oname, allow_raw=False)
+            self._ensure_favourite_then_start(target, oname, allow_raw=False)
         else:
             self.state_label.setText("watching for new files…")
 

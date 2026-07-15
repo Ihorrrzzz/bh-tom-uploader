@@ -21,7 +21,7 @@ from PySide6.QtCore import QObject, QTimer, Signal
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-from .scanner import EXCLUDED_DIR_NAMES, FITS_EXTENSIONS
+from .scanner import EXCLUDED_DIR_NAMES, is_fits_name
 
 MAX_OPEN_ATTEMPTS = 20  # sweeps a stable-size file may fail astropy open before we give up
 
@@ -87,7 +87,7 @@ class FolderWatcher(QObject):
 
     # ------------------------------------------------------------------
     def _relevant(self, path: Path) -> bool:
-        if path.suffix.lower() not in FITS_EXTENSIONS:
+        if not is_fits_name(path.name):
             return False
         try:
             parts = path.relative_to(self.folder).parts[:-1]

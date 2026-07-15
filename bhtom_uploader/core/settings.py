@@ -145,6 +145,15 @@ class Settings:
     def cosmic_ray(self, value: bool) -> None:
         self._set("calibration/cosmic_ray", bool(value))
 
+    @property
+    def saturation_adu(self) -> Optional[float]:
+        """Manual saturation level override; None = use the FITS SATURATE keyword."""
+        return self._get_float("calibration/saturation_adu", None)
+
+    @saturation_adu.setter
+    def saturation_adu(self, value: Optional[float]) -> None:
+        self._set("calibration/saturation_adu", "" if value is None else value)
+
     # -- UI behavior -------------------------------------------------------
     @property
     def theme(self) -> str:

@@ -202,6 +202,18 @@ class BHTOMClient:
     def get_favourite_observatories(self) -> list[dict]:
         return _as_list(self._post_json("/observatory/getFavouriteObservatory/", {}))
 
+    def add_favourite_observatory(self, oname: str, comment: str = "") -> dict:
+        """Add a camera (by ONAME) to the user's favourites.
+
+        The upload service only accepts observatories from the user's own list
+        (verified live: 'Observatory with camera doesn't exist on your list'),
+        so the app adds the picked camera on demand.
+        """
+        payload: dict[str, Any] = {"oname": oname}
+        if comment:
+            payload["comment"] = comment
+        return self._post_json("/observatory/addFavouriteObservatory/", payload, retries=0) or {}
+
     # ------------------------------------------------------------------
     # targets
     # ------------------------------------------------------------------

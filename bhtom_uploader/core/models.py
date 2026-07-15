@@ -64,6 +64,7 @@ class FrameInfo:
     ra: Optional[float] = None      # degrees
     dec: Optional[float] = None     # degrees
     shape: Optional[tuple[int, int]] = None  # (NAXIS2, NAXIS1)
+    saturate: Optional[float] = None  # detector saturation level (ADU) from the header
     error: Optional[str] = None     # set when the file could not be read
 
     @property

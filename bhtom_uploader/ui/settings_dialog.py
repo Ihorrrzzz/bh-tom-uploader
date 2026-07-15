@@ -81,6 +81,16 @@ class SettingsDialog(QDialog):
         self.flat_max.setValue(settings.flat_max_adu or 0)
         self.flat_max.setToolTip("Reject flats whose mean ADU is above this - near saturation (0 = disabled)")
         form.addRow("Flat max mean ADU", self.flat_max)
+        self.saturation_spin = QDoubleSpinBox(minimum=0, maximum=1000000, decimals=0)
+        self.saturation_spin.setSpecialValueText("from FITS header")
+        self.saturation_spin.setValue(settings.saturation_adu or 0)
+        self.saturation_spin.setToolTip(
+            "Detector saturation level in ADU used to flag saturated star cores.\n"
+            "0 = read the SATURATE keyword from each frame's header.\n"
+            "Saturated pixels are counted and flagged, and an adjusted SATURATE\n"
+            "keyword is written to calibrated outputs for BHTOM's photometry."
+        )
+        form.addRow("Saturation level ADU", self.saturation_spin)
         self.cosmic_check = QCheckBox("Remove cosmic rays during calibration (L.A.Cosmic - slower)")
         self.cosmic_check.setChecked(settings.cosmic_ray)
         form.addRow(self.cosmic_check)
@@ -108,5 +118,6 @@ class SettingsDialog(QDialog):
         s.comment = self.comment_edit.text().strip()
         s.flat_min_adu = self.flat_min.value() or None
         s.flat_max_adu = self.flat_max.value() or None
+        s.saturation_adu = self.saturation_spin.value() or None
         s.cosmic_ray = self.cosmic_check.isChecked()
         self.accept()

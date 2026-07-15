@@ -21,6 +21,7 @@ from typing import Callable, Optional
 import numpy as np
 import ccdproc
 from astropy import units as u
+from astropy.io import fits
 from astropy.nddata import CCDData
 from astropy.stats import mad_std
 
@@ -41,12 +42,32 @@ def _noop_log(_msg: str) -> None:
     pass
 
 
-def _read_ccd(path: Path) -> CCDData:
-    """Read a FITS file as CCDData, defaulting to ADU when BUNIT is absent."""
+def _read_ccd(path: Path, frame: Optional[FrameInfo] = None) -> CCDData:
+    """Read a FITS file as CCDData, defaulting to ADU when BUNIT is absent.
+
+    Multi-extension FITS (e.g. raw LCO frames: empty primary + compressed image
+    extensions) needs the image HDU located explicitly - astropy will not fall
+    back on its own. In that layout metadata such as EXPTIME lives in the
+    primary header, so when a FrameInfo is given its parsed exposure is
+    injected for ccdproc's exposure scaling.
+    """
+    hdu_index = 0
+    with fits.open(path, memmap=True) as hdul:
+        for i, hdu in enumerate(hdul):
+            header = hdu.header
+            try:
+                if int(header.get("NAXIS", 0) or 0) >= 2 and int(header.get("NAXIS1", 0) or 0) > 0:
+                    hdu_index = i
+                    break
+            except (TypeError, ValueError):
+                continue
     try:
-        return CCDData.read(path)
+        ccd = CCDData.read(path, hdu=hdu_index, format="fits")
     except ValueError:
-        return CCDData.read(path, unit="adu")
+        ccd = CCDData.read(path, hdu=hdu_index, unit="adu", format="fits")
+    if frame is not None and frame.exptime is not None and "EXPTIME" not in ccd.meta:
+        ccd.meta["EXPTIME"] = float(frame.exptime)
+    return ccd
 
 
 def _add_history(meta, text: str) -> None:
@@ -99,12 +120,14 @@ class Calibrator:
         flat_min_adu: Optional[float] = None,
         flat_max_adu: Optional[float] = None,
         cosmic_ray: bool = False,
+        saturation_adu: Optional[float] = None,  # override; None = header SATURATE
         log: Optional[LogFn] = None,
     ) -> None:
         self.mem_limit = mem_limit
         self.flat_min_adu = flat_min_adu
         self.flat_max_adu = flat_max_adu
         self.cosmic_ray = cosmic_ray
+        self.saturation_adu = saturation_adu
         self.log: LogFn = log or _noop_log
         self._master_bias: dict[tuple, Optional[CCDData]] = {}
         self._master_dark: dict[tuple, Optional[CCDData]] = {}
@@ -160,7 +183,7 @@ class Calibrator:
         )
         ccds: list[CCDData] = []
         for frame in usable:
-            ccd = _read_ccd(frame.path)
+            ccd = _read_ccd(frame.path, frame)
             if bias is not None:
                 ccd = ccdproc.subtract_bias(ccd, bias)
             ccd.data = ccd.data / float(frame.exptime)  # per-second dark current
@@ -204,7 +227,7 @@ class Calibrator:
         _check_shapes(flats, f"flat[{filter_name or 'no filter'}]")
         ccds: list[CCDData] = []
         for frame in flats:
-            ccd = _read_ccd(frame.path)
+            ccd = _read_ccd(frame.path, frame)
             mean_adu = float(np.mean(ccd.data))
             if self.flat_min_adu is not None and mean_adu < self.flat_min_adu:
                 self.log(f"rejecting flat {frame.name}: mean {mean_adu:.0f} ADU below minimum")
@@ -286,8 +309,8 @@ class Calibrator:
             if frame.calibration_state is CalibrationState.CALIBRATED:
                 results.append((frame, frame.path, f"already calibrated ({frame.calibration_evidence})"))
                 continue
-            out_path = self.calibrate_light(frame, bias, dark, flat, out_dir)
-            results.append((frame, out_path, "calibrated"))
+            out_path, note = self.calibrate_light(frame, bias, dark, flat, out_dir)
+            results.append((frame, out_path, note))
         return results
 
     def calibrate_light(
@@ -297,27 +320,50 @@ class Calibrator:
         dark: Optional[CCDData],
         flat: Optional[CCDData],
         out_dir: Path,
-    ) -> Path:
-        """Apply bias/dark/flat (whatever is available) to one light frame and save it."""
-        ccd = _read_ccd(frame.path)
+    ) -> tuple[Path, str]:
+        """Apply bias/dark/flat (whatever is available) to one light frame, save it.
+
+        Returns (output path, note). Saturated pixels are counted on the RAW
+        data against the detector's SATURATE level (header, or the configured
+        override); pixels are deliberately left untouched - punching holes in
+        star cores would break BHTOM's server-side profile photometry - but the
+        count is flagged and an ADJUSTED ``SATURATE`` keyword is written to the
+        output (the ceiling drops by the subtracted bias/dark pedestal), which
+        is exactly what SExtractor-style photometry reads to reject bad stars.
+        """
+        ccd = _read_ccd(frame.path, frame)
         if frame.shape and bias is not None and ccd.data.shape != bias.data.shape:
             raise CalibrationError(
                 f"{frame.name}: shape {ccd.data.shape} does not match master bias "
                 f"{bias.data.shape} - mixed binning/subframe?"
             )
+
+        # saturation census on the raw pixels (before any arithmetic)
+        sat_level = self.saturation_adu or frame.saturate
+        n_saturated = 0
+        if sat_level and sat_level > 0:
+            n_saturated = int(np.count_nonzero(ccd.data >= sat_level))
+
         steps = ""
+        adjusted_level = float(sat_level) if sat_level else None
         if bias is not None:
             ccd = ccdproc.subtract_bias(ccd, bias)
+            if adjusted_level is not None:
+                adjusted_level -= float(np.median(bias.data))
             steps += "B"
         if dark is not None:
             if (frame.exptime or 0) > 0:
                 ccd = ccdproc.subtract_dark(
                     ccd, dark, exposure_time="EXPTIME", exposure_unit=u.s, scale=True
                 )
+                if adjusted_level is not None:
+                    adjusted_level -= float(np.median(dark.data)) * float(frame.exptime)
                 steps += "D"
             else:
                 self.log(f"{frame.name}: no EXPTIME - dark subtraction skipped")
         if flat is not None:
+            # master flat is normalized to ~1, so the saturation ceiling is
+            # essentially unchanged by flat correction
             ccd = ccdproc.flat_correct(ccd, flat, min_value=0.1)
             steps += "F"
         if self.cosmic_ray:
@@ -331,8 +377,26 @@ class Calibrator:
         ccd.meta["CALSTAT"] = steps
         _add_history(ccd.meta, _provenance_line(",".join(steps)))
 
+        # saturation flags for downstream photometry (BHTOM's SExtractor reads SATURATE)
+        note = "calibrated"
+        if sat_level and sat_level > 0:
+            ccd.meta["SATURATE"] = max(float(adjusted_level), 1.0)
+            ccd.meta["SATORIG"] = float(sat_level)
+            ccd.meta["NSATPIX"] = n_saturated
+            if n_saturated:
+                note = f"calibrated; {n_saturated} saturated px (>= {sat_level:g} ADU)"
+                self.log(
+                    f"{frame.name}: {n_saturated} saturated pixel(s) at raw level "
+                    f">= {sat_level:g} ADU - photometry of stars in those cores is invalid"
+                )
+
         out_dir.mkdir(parents=True, exist_ok=True)
-        out_path = out_dir / f"calibrated_{frame.path.name}"
+        # outputs are plain uncompressed FITS: drop .fz/.gz from compressed sources
+        out_name = frame.path.name
+        for suffix in (".fz", ".gz"):
+            if out_name.lower().endswith(suffix):
+                out_name = out_name[: -len(suffix)]
+        out_path = out_dir / f"calibrated_{out_name}"
         ccd.write(out_path, overwrite=True)
         self.log(f"{frame.name}: calibrated ({steps or 'no steps applied'}) -> {out_path.name}")
-        return out_path
+        return out_path, note

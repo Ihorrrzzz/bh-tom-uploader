@@ -33,7 +33,16 @@ from .models import (
     ScanResult,
 )
 
-FITS_EXTENSIONS = {".fits", ".fit", ".fts"}
+FITS_EXTENSIONS = (".fits", ".fit", ".fts")
+#: fpack/gzip-compressed FITS (e.g. LCO archive raw frames are .fits.fz)
+FITS_COMPRESSED_SUFFIXES = tuple(e + ".fz" for e in FITS_EXTENSIONS) + tuple(
+    e + ".gz" for e in FITS_EXTENSIONS
+)
+
+
+def is_fits_name(name: str) -> bool:
+    lowered = name.lower()
+    return lowered.endswith(FITS_EXTENSIONS) or lowered.endswith(FITS_COMPRESSED_SUFFIXES)
 
 #: Folder names never scanned (our own outputs / master frames).
 EXCLUDED_DIR_NAMES = {"calibrated files", "masters"}
@@ -43,6 +52,7 @@ TEMP_SPREAD_WARN = 5.0
 
 # --- IMAGETYP decision table (checked in order; substring match on upper) ---
 # DARK before FLAT so "Dark Flat"/"FLATDARK" classifies as dark.
+# EXPOSE is the LCO/BANZAI convention for science frames.
 _IMAGETYP_TOKENS: list[tuple[str, FrameType]] = [
     ("BIAS", FrameType.BIAS),
     ("ZERO", FrameType.BIAS),
@@ -50,6 +60,7 @@ _IMAGETYP_TOKENS: list[tuple[str, FrameType]] = [
     ("FLAT", FrameType.FLAT),
     ("LIGHT", FrameType.LIGHT),
     ("SCIENCE", FrameType.LIGHT),
+    ("EXPOSE", FrameType.LIGHT),
     ("OBJECT", FrameType.LIGHT),
 ]
 
@@ -189,15 +200,36 @@ def detect_calibration_state(header: fits.Header, path: Path) -> tuple[Calibrati
 
 
 def read_frame_info(path: Path) -> FrameInfo:
-    """Parse one FITS file into a FrameInfo (never raises; errors are recorded)."""
+    """Parse one FITS file into a FrameInfo (never raises; errors are recorded).
+
+    Handles both simple single-HDU files and multi-extension FITS such as raw
+    LCO Sinistro frames (empty primary carrying the metadata + compressed image
+    extensions): keywords are looked up in the primary header first, falling
+    back to the first image extension; the shape comes from the image HDU.
+    """
     info = FrameInfo(path=path)
     try:
         with fits.open(path, memmap=True) as hdul:
-            header = hdul[0].header
-            # data shape from header only - avoid loading pixels during a scan
-            naxis1, naxis2 = header.get("NAXIS1"), header.get("NAXIS2")
-            if naxis1 and naxis2:
-                info.shape = (int(naxis2), int(naxis1))
+            primary = hdul[0].header
+            image_header = None
+            for hdu in hdul:
+                h = hdu.header
+                try:
+                    if int(h.get("NAXIS", 0) or 0) >= 2 and int(h.get("NAXIS1", 0) or 0) > 0:
+                        image_header = h
+                        break
+                except (TypeError, ValueError):
+                    continue
+            # shape MUST be read before any header merging: Header.update()
+            # shares Card objects, so a later merge would write the primary's
+            # zero-length axes back into the extension header (seen on real
+            # LCO files whose empty primary declares NAXIS=2, NAXIS1=NAXIS2=0)
+            if image_header is not None:
+                info.shape = (int(image_header["NAXIS2"]), int(image_header["NAXIS1"]))
+            header = fits.Header()
+            if image_header is not None and image_header is not primary:
+                header.update(image_header.copy())
+            header.update(primary.copy())  # primary keywords win (MEF metadata lives there)
     except Exception as exc:  # corrupt / truncated / not really FITS
         info.error = f"unreadable: {exc}"
         return info
@@ -212,6 +244,7 @@ def read_frame_info(path: Path) -> FrameInfo:
         info.binning = (int(xbin), int(ybin))
     info.ccd_temp = _get_float(header, "CCD-TEMP", "CCDTEMP", "SET-TEMP")
     info.date_obs = _get_str(header, "DATE-OBS", "DATE")
+    info.saturate = _get_float(header, "SATURATE", "SATLEVEL")
     info.ra, info.dec = extract_ra_dec(header)
 
     if info.frame_type is FrameType.LIGHT:
@@ -224,14 +257,14 @@ def read_frame_info(path: Path) -> FrameInfo:
 # --------------------------------------------------------------------------
 
 def find_fits_files(root: Path, recursive: bool = True) -> list[Path]:
-    """All FITS files under root, skipping our own output folders."""
+    """All FITS files under root (incl. .fz/.gz), skipping our own output folders."""
     results: list[Path] = []
     if root.is_file():
-        return [root] if root.suffix.lower() in FITS_EXTENSIONS else []
+        return [root] if is_fits_name(root.name) else []
     for path in sorted(root.rglob("*") if recursive else root.glob("*")):
         if path.is_dir():
             continue
-        if path.suffix.lower() not in FITS_EXTENSIONS:
+        if not is_fits_name(path.name):
             continue
         rel_parts = {p.lower() for p in path.relative_to(root).parts[:-1]}
         if rel_parts & EXCLUDED_DIR_NAMES:
