@@ -1,0 +1,92 @@
+name: Build installers
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  windows:
+    name: Windows setup exe
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+      - name: Freeze app
+        run: |
+          pyinstaller --noconfirm --clean --windowed --name "BHTOM Uploader" --icon "bhtom_uploader\resources\app.ico" --add-data "bhtom_uploader\resources;bhtom_uploader\resources" --exclude-module tkinter --exclude-module _tkinter main.py
+          copy config.ini "dist\BHTOM Uploader\config.ini"
+      - name: Self-check frozen app
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "dist\BHTOM Uploader\BHTOM Uploader.exe" -ArgumentList "--smoke" -WorkingDirectory "dist\BHTOM Uploader" -Wait -PassThru -NoNewWindow
+          Get-Content "dist\BHTOM Uploader\smoke_result.txt"
+          Remove-Item "dist\BHTOM Uploader\smoke_result.txt"
+          if ($p.ExitCode -ne 0) { exit 1 }
+      - name: Ensure Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+      - name: Compile installer
+        shell: pwsh
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer.iss
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BHTOM-Uploader-windows-setup
+          path: dist/BHTOM-Uploader-Setup-*.exe
+
+  macos:
+    name: macOS DMG (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest   # Apple Silicon
+            arch: arm64
+          - runner: macos-13       # Intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+      - name: Freeze app bundle
+        run: |
+          pyinstaller --noconfirm --clean --windowed --name "BHTOM Uploader" \
+            --icon bhtom_uploader/resources/app.icns \
+            --add-data "bhtom_uploader/resources:bhtom_uploader/resources" \
+            --exclude-module tkinter --exclude-module _tkinter \
+            --osx-bundle-identifier space.bhtom.uploader \
+            main.py
+          cp config.ini "dist/BHTOM Uploader.app/Contents/MacOS/config.ini"
+      - name: Self-check app bundle
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          cd "dist/BHTOM Uploader.app/Contents/MacOS"
+          "./BHTOM Uploader" --smoke
+          cat smoke_result.txt
+          rm -f smoke_result.txt
+      - name: Create DMG
+        run: |
+          mkdir dist/dmgroot
+          cp -R "dist/BHTOM Uploader.app" dist/dmgroot/
+          ln -s /Applications dist/dmgroot/Applications
+          hdiutil create -volname "BHTOM Uploader" -srcfolder dist/dmgroot -ov -format UDZO \
+            "dist/BHTOM-Uploader-2.0.0-${{ matrix.arch }}.dmg"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BHTOM-Uploader-macos-${{ matrix.arch }}
+          path: dist/BHTOM-Uploader-*.dmg

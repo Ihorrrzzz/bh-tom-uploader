@@ -121,8 +121,24 @@ ISCC.exe installer.iss   ->  dist\BHTOM-Uploader-Setup-<version>.exe
 
 The intermediate `dist/BHTOM Uploader/` folder is itself portable: copy it anywhere
 and run `BHTOM Uploader.exe`. Self-check of a built bundle:
-`"BHTOM Uploader.exe" --smoke` writes `smoke_result.txt` (verifies Qt boots and the
-Windows Credential Manager keyring backend is active).
+`"BHTOM Uploader.exe" --smoke` writes `smoke_result.txt` (verifies Qt boots and a
+secure OS keyring backend is active).
+
+## macOS version
+
+The code is fully cross-platform (credentials go to the macOS Keychain, the tray
+lives in the menu bar), but a Mac binary can only be *built* on macOS - PyInstaller
+does not cross-compile. Two ways to get it:
+
+1. **GitHub Actions (no Mac needed):** the `Build installers` workflow
+   (`.github/workflows/build.yml`) builds everything on real cloud machines -
+   the Windows setup exe plus `BHTOM-Uploader-<version>-arm64.dmg` (Apple Silicon)
+   and `-x86_64.dmg` (Intel). Trigger it from the repo's Actions tab
+   ("Run workflow") or by pushing a `v*` tag; download from the run's Artifacts.
+2. **On a Mac:** `./scripts/build_macos.sh` produces the app bundle and DMG locally.
+
+Install on macOS: open the DMG, drag **BHTOM Uploader** into **Applications**.
+The app is unsigned, so the first launch needs right-click > Open (Gatekeeper).
 
 ## Supported input formats
 

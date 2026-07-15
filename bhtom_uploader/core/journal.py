@@ -8,14 +8,20 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
 
 def default_journal_path() -> Path:
-    base = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA") or str(Path.home())
-    return Path(base) / "BHTOM" / "BHTOM Uploader" / "upload_journal.json"
+    if sys.platform == "darwin":
+        base = Path.home() / "Library" / "Application Support"
+    elif os.name == "nt":
+        base = Path(os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA") or Path.home())
+    else:
+        base = Path(os.environ.get("XDG_DATA_HOME") or (Path.home() / ".local" / "share"))
+    return base / "BHTOM" / "BHTOM Uploader" / "upload_journal.json"
 
 
 class UploadJournal:

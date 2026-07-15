@@ -124,7 +124,8 @@ def _build_qss(t: Tokens) -> str:
     QLabel#emptyState {{ color: {t.subtext}; font-size: 15px; }}
 
     QPlainTextEdit#log {{
-        font-family: Consolas, 'Cascadia Mono', monospace; font-size: 12px;
+        font-family: Consolas, 'Cascadia Mono', Menlo, 'SF Mono', monospace;
+        font-size: 12px;
         background: {t.base}; border: none;
     }}
 

@@ -25,11 +25,14 @@ def _smoke() -> int:
         app = QApplication([])
         apply_theme(app, "dark")
         LoginDialog(BHTOMClient(), Settings())
-        backend = type(keyring.get_keyring()).__name__
+        backend_type = type(keyring.get_keyring())
+        backend = f"{backend_type.__module__}.{backend_type.__name__}"
         lines.append(f"SMOKE OK v{__version__}")
         lines.append(f"keyring backend: {backend}")
         lines.append(f"bhtom url: {get_bhtom_url()}")
-        code = 0 if backend == "WinVaultKeyring" else 2  # plaintext fallback would be 2
+        # Windows -> WinVaultKeyring, macOS -> macOS.Keyring, Linux -> SecretService;
+        # only the 'fail' backend (no secure store available) is a problem
+        code = 2 if "fail" in backend else 0
     except Exception as exc:  # noqa: BLE001 - report anything
         lines.append(f"SMOKE FAILED: {type(exc).__name__}: {exc}")
         code = 1
